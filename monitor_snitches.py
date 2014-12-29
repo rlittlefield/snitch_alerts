@@ -9,12 +9,14 @@ import json
 import csv
 import datetime
 import StringIO
+import webbrowser
 from string import Template
 
 from twisted.web.server import Site
 from twisted.web.resource import Resource
-from twisted.internet import reactor
+from twisted.internet import reactor, defer
 from twisted.internet import task
+from twisted.web.static import File
 
 alert_url = 'https://api.pushbullet.com/v2/pushes';
 snitch_regex = re.compile(r'\[(.+?)] .+ \[CHAT] .*? \* (.+) entered snitch at (.+) \[(.+)]')
@@ -46,42 +48,14 @@ class Thing(Resource):
             print e
         Resource.__init__(self)
     def render_GET(self, request):
-        output = Template(u"""
-<html>
-    <h1>Welcome to the config page!</h1>
-    
-    <form action="/" method="POST">
-        <p> We just need to fill out a few quick items before we can get started.</p>
-        <ol>
-            <li>
-                <span>What is the full path to your minecraft chat log?</span>
-                <input type="text" value="$log_location" name="log_path" />
-            </li>
-            <li>
-                <span>Full path to where you want to save the snitch logs (csv)</span>
-                <input type="text" value="$csv_location" name="csv_path" />
-            </li>
-            <li>
-                <span>PushBullet API token</span>
-                <input type="text" value="$alert_token" name="pushbullet_token" />
-            </li>
-            <li>
-                <span>PushBullet Channel</span>
-                <input type="text" value="$alert_channel" name="pushbullet_channel" />
-            </li>
-            <li>
-                <span>TSV export of badguy list url (google doc export url)</span>
-                <p>You need to get the export url of the public facing google doc. This can be done in several ways, but the easiest is to go to the "share" link, get a public URL, then open an icognito window and go to that URL. Then export the thing as a TSV, and go to your chrome downloads page, right click on it, and copy the URL.</p>
-                <input type="text" value="$players_url" name="players_url" />
-            </li>
-        </ol>
-        <input type="submit" value="Start!" />
-    </form>
-    
-</html>
-        """).safe_substitute(self.__dict__)
-        
-        return str(output)
+        output = {}
+        output['log_path'] = self.log_location
+        output['csv_path'] = self.csv_location 
+        output['pushbullet_token'] = self.alert_token
+        output['pushbullet_channel'] = self.alert_channel
+        output['players_url'] = self.players_url
+        request.setHeader('Content-type', 'application/json')
+        return json.dumps(output)
     def render_POST(self, request):
         print request.args
         reactor.callLater(1, self.start, request)
@@ -177,11 +151,18 @@ class Thing(Resource):
             
         
 
-root = Thing()
+app = Thing()
 
-        
+root = File('static')
+root.putChild('app', app)
 factory = Site(root)
+
+
 reactor.listenTCP(8080, factory)
+
+def openBrowserConfig():
+    webbrowser.open('http://127.0.0.1:8080')
+reactor.callLater(1, openBrowserConfig);
 reactor.run()
 
 sys.exit()

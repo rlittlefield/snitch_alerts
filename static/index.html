@@ -1,0 +1,112 @@
+<!DOCTYPE HTML>
+<!--
+	Strata by HTML5 UP
+	html5up.net | @n33co
+	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+-->
+<html>
+	<head>
+		<title>Strata by HTML5 UP</title>
+		<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+		<meta name="description" content="" />
+		<meta name="keywords" content="" />
+		<!--[if lte IE 8]><script src="css/ie/html5shiv.js"></script><![endif]-->
+		<script src="js/jquery.min.js"></script>
+		<script src="js/skel.min.js"></script>
+		<script src="js/init.js"></script>
+        <script src="js/home.js"></script>
+		<noscript>
+			<link rel="stylesheet" href="css/skel.css" />
+			<link rel="stylesheet" href="css/style.css" />
+			<link rel="stylesheet" href="css/style-xlarge.css" />
+		</noscript>
+		<!--[if lte IE 8]><link rel="stylesheet" href="css/ie/v8.css" /><![endif]-->
+	</head>
+	<body id="top">
+
+		<!-- Header -->
+			<header id="header">
+				<a href="#" class="image avatar"><img src="images/avatar.jpg" alt="" /></a>
+				<h1>Carbon Snitch Alert System</h1>
+			</header>
+
+		<!-- Main -->
+			<div id="main">
+		
+				<!-- One -->
+					<section id="one">
+						<header class="major">
+							<h2>Get alerts sent to your phone or browser <br/>
+                            when someone hits your snitches</h2>
+						</header>
+						<p>
+                            The CSAS is written by Ryan Littlefield. It is designed to alert you and your friends when someone hits a snitch in <a href="https://www.reddit.com/r/civcraft">civcraft</a>. Push alerts are currently handled through <a href="https://www.pushbullet.com/">Pushbullet</a> public channels.
+                        </p>
+						<p>
+                            To get started:
+                            <ol>
+                                <li>Set up a <a href="https://en.wikipedia.org/wiki/Tab-separated_values">TSV</a> document on the web somewhere. I recommend using a google doc, and making a public URL for viewing. You can then download an export as a TSV and use that URL in the config.</li>
+                                <li>Get a pushbullet account</li>
+                                <li>Set up a pushbullet channel and copy the tag/name</li>
+                                <li>Find your <a href="https://www.pushbullet.com/account">pushbullet API token</a></li>
+                                <li>Determine what file path on your computer you would like to save all snitch hits to. This should be a full path, but will otherwise go into the same directory as monitor_snitches.py</li>
+                                <li>Find your .minecraft directory, and locate the log file. It should be something like C:\Users\Ryan\AppData\Roaming\.minecraft\logs\latest.log</li>
+                                <li>Fill out the information in the Setup section below</li>
+                                <li>Press "Start"</li>
+                            </ol>
+                        </p>
+					</section>
+				
+				
+                
+                
+                
+				<!-- Three -->
+					<section id="three">
+						<h2>Config</h2>
+						<form action="/app" method="POST">
+                        <p> We just need to fill out a few quick items before we can get started.</p>
+                        <ol>
+                            <li>
+                                <span>What is the full path to your minecraft chat log?</span>
+                                <input type="text" value="$log_location" name="log_path" id="log_path" />
+                            </li>
+                            <li>
+                                <span>Full path to where you want to save the snitch logs (csv)</span>
+                                <input type="text" value="$csv_location" name="csv_path" id="csv_path" />
+                            </li>
+                            <li>
+                                <span>PushBullet API token</span>
+                                <input type="text" value="$alert_token" name="pushbullet_token" id="pushbullet_token" />
+                            </li>
+                            <li>
+                                <span>PushBullet Channel</span>
+                                <input type="text" value="$alert_channel" name="pushbullet_channel" id="pushbullet_channel" />
+                            </li>
+                            <li>
+                                <span>TSV export of badguy list url (google doc export url)</span>
+                                <p>You need to get the export url of the public facing google doc. This can be done in several ways, but the easiest is to go to the "share" link, get a public URL, then open an icognito window and go to that URL. Then export the thing as a TSV, and go to your chrome downloads page, right click on it, and copy the URL.</p>
+                                <input type="text" value="$players_url" name="players_url" id="players_url" />
+                            </li>
+                        </ol>
+                        <input type="submit" value="Start!" />
+                    </form>
+					</section>
+
+			</div>
+			
+		<!-- Footer -->
+			<footer id="footer">
+				<ul class="icons">
+					<li><a href="#" class="icon fa-twitter"><span class="label">Twitter</span></a></li>
+					<li><a href="#" class="icon fa-github"><span class="label">Github</span></a></li>
+					<li><a href="#" class="icon fa-dribbble"><span class="label">Dribbble</span></a></li>
+					<li><a href="#" class="icon fa-envelope-o"><span class="label">Email</span></a></li>
+				</ul>
+				<ul class="copyright">
+					<li>&copy; Untitled</li><li>Design: <a href="http://html5up.net">HTML5 UP</a></li>
+				</ul>
+			</footer>
+
+	</body>
+</html>
