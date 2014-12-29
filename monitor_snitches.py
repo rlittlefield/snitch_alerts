@@ -21,6 +21,10 @@ from twisted.web.static import File
 alert_url = 'https://api.pushbullet.com/v2/pushes';
 snitch_regex = re.compile(r'\[(.+?)] .+ \[CHAT] .*? \* (.+) entered snitch at (.+) \[(.+)]')
 
+abspath = os.path.abspath(__file__)
+dname = os.path.dirname(abspath)
+os.chdir(dname)
+
 class Thing(Resource):
     isLeaf = True
     started = False
