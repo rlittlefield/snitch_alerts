@@ -23,7 +23,7 @@ class Thing(Resource):
     isLeaf = True
     started = False
     loop = None
-    settings_file = 'settings.json'
+    settings_file_path = 'settings.json'
     
     def __init__(self):
         self.log_location = ''
@@ -32,7 +32,7 @@ class Thing(Resource):
         self.alert_channel = ''
         self.players_url = ''
         try:
-            with open(self.settings_file, 'r') as settings_file:
+            with open(self.settings_file_path, 'r') as settings_file:
                 args = json.load(settings_file)
                 if args:
                     self.log_location = args['log_location']
@@ -107,7 +107,7 @@ class Thing(Resource):
         self.last_player_refresh = time.time()
         self.file_ = open(self.log_location)
         
-        self.settings_file = open(self.settings_file, 'w')
+        self.settings_file = open(self.settings_file_path, 'w')
         
         output_dict = {
             'log_location': self.log_location,
@@ -160,7 +160,7 @@ class Thing(Resource):
             headers = {'Content-type': 'application/json', 'Authorization': 'Bearer ' + self.alert_token}
             r = requests.post(alert_url, auth=(self.alert_token, ''), data=body, headers=headers)
             print r
-            print r.text
+            print str(r.text)
             self.players[ciplayer]['alerted'] = True
             
     def fetch_players(self):
