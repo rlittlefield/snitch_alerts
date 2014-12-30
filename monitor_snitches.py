@@ -21,7 +21,13 @@ from twisted.web.static import File
 alert_url = 'https://api.pushbullet.com/v2/pushes';
 snitch_regex = re.compile(r'\[(.+?)] .+ \[CHAT] .*? \* (.+) entered snitch at (.+) \[(.+)]')
 
-abspath = os.path.abspath(__file__)
+if getattr(sys, 'frozen', False):
+    print "Loading as frozen executable"
+    abspath = os.path.abspath(sys.executable)
+elif __file__:
+    print "Loading as python script"
+    abspath = os.path.abspath(__file__)
+
 dname = os.path.dirname(abspath)
 os.chdir(dname)
 
@@ -136,7 +142,7 @@ class Thing(Resource):
             }
             body = json.dumps(notice)
             headers = {'Content-type': 'application/json', 'Authorization': 'Bearer ' + self.alert_token}
-            r = requests.post(alert_url, auth=(self.alert_token, ''), data=body, headers=headers)
+            r = requests.post(alert_url, auth=(self.alert_token, ''), data=body, headers=headers, verify=False)
             print r
             print str(r.text)
             self.players[ciplayer]['alerted'] = True
@@ -144,7 +150,7 @@ class Thing(Resource):
     def fetch_players(self):
         print "Fetching players..."
         self.players.clear()
-        r = requests.get(self.players_url)
+        r = requests.get(self.players_url, verify=False)
         # r should now be a tsv file
         csv_read_file = StringIO.StringIO(r.text)
         csv_reader = csv.reader(csv_read_file, delimiter='\t')
