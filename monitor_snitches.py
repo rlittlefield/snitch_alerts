@@ -137,8 +137,9 @@ class Thing(Resource):
             print "ALERT ALERT ALERT ALERT"
             notice = {
                 'channel_tag': 'civcarbon',
-                'type': 'note',
-                'body': ciplayer + ' hit snitch ' + location + ' [' + coordinates + ']\nBounty: ' + self.players[ciplayer]['bounty'] + '\nNote: ' + self.players[ciplayer]['note']
+                'type': 'link',
+                'body': ciplayer + ' hit snitch ' + location + ' [' + coordinates + ']\nBounty: ' + self.players[ciplayer]['bounty'] + '\nNote: ' + self.players[ciplayer]['note'],
+                'url': 'https://www.reddit.com/r/Civcraft/search?q='+player+'&sort=new&restrict_sr=on'
             }
             body = json.dumps(notice)
             headers = {'Content-type': 'application/json', 'Authorization': 'Bearer ' + self.alert_token}
