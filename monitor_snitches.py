@@ -19,7 +19,7 @@ from twisted.internet import task
 from twisted.web.static import File
 
 alert_url = 'https://api.pushbullet.com/v2/pushes';
-snitch_regex = re.compile(r'\[(.+?)] .+ \[CHAT] .*? \* (.+) entered snitch at (.+) \[(.+)]')
+
 
 if getattr(sys, 'frozen', False):
     print "Loading as frozen executable"
@@ -43,6 +43,7 @@ class Thing(Resource):
         self.alert_token = ''
         self.alert_channel = ''
         self.players_url = ''
+        self.regex = r'.+ (.+?) entered snitch at (.+) \[(.+)]'
         try:
             with open(self.settings_file_path, 'r') as settings_file:
                 args = json.load(settings_file)
@@ -52,6 +53,7 @@ class Thing(Resource):
                     self.alert_token = args['alert_token']
                     self.alert_channel = args['alert_channel']
                     self.players_url = args['players_url']
+                    self.regex = args['regex']
                 print self.__dict__
         except Exception as e:
             print "no settings file found, skipping"
@@ -64,6 +66,7 @@ class Thing(Resource):
         output['pushbullet_token'] = self.alert_token
         output['pushbullet_channel'] = self.alert_channel
         output['players_url'] = self.players_url
+        output['regex'] = self.regex
         request.setHeader('Content-type', 'application/json')
         return json.dumps(output)
     def render_POST(self, request):
@@ -77,6 +80,10 @@ class Thing(Resource):
         self.alert_token = args['pushbullet_token'][0]
         self.alert_channel = args['pushbullet_channel'][0]
         self.players_url = args['players_url'][0]
+        self.regex = args['regex'][0]
+        self.snitch_regex = re.compile(self.regex);
+
+        
         
         self.csv_writer = None
         self.players = {}
@@ -98,7 +105,8 @@ class Thing(Resource):
             'csv_location': self.csv_location,
             'alert_token': self.alert_token,
             'alert_channel': self.alert_channel,
-            'players_url': self.players_url
+            'players_url': self.players_url,
+            'regex': self.regex,
         }
         
         json.dump(output_dict, self.settings_file)
@@ -121,14 +129,14 @@ class Thing(Resource):
             self.file_.seek(self.curr_position)
         else:
             line = line.replace("\r", '').replace("\n", '').strip()
-            matches = snitch_regex.findall(line)
+            matches = self.snitch_regex.findall(line)
             if len(matches) > 0:
                 print "success " + line
                 self.record_snitch(*matches[0])
             else:
                 print "failed " + line
             self.tick() # when lines are available, process them as fast as possible
-    def record_snitch(self, timestamp, player, location, coordinates):
+    def record_snitch(self, player, location, coordinates):
         if self.csv_writer:
             self.csv_writer.writerow((datetime.datetime.utcnow().isoformat(), player, location, coordinates))
             self.csv_file.flush()
