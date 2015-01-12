@@ -43,7 +43,7 @@ class Thing(Resource):
         self.alert_token = ''
         self.alert_channel = ''
         self.players_url = ''
-        self.regex = r'.+ (.+?) entered snitch at (.+) \[(.+)]'
+        self.regex = r'.+ \* (.+?) .+? snitch at (.+) \[(.+)]'
         try:
             with open(self.settings_file_path, 'r') as settings_file:
                 args = json.load(settings_file)
