@@ -10,7 +10,6 @@ import csv
 import datetime
 import StringIO
 import webbrowser
-from string import Template
 
 from twisted.web.server import Site
 from twisted.web.resource import Resource
@@ -38,78 +37,50 @@ class Thing(Resource):
     settings_file_path = 'settings.json'
     
     def __init__(self):
-        self.log_location = ''
-        self.csv_location = ''
-        self.alert_token = ''
-        self.alert_channel = ''
-        self.players_url = ''
-        self.regex = r'.+ \* (.+?) .+? snitch at (.+) \[(.+)]'
+        self.settings = {
+            'log_location': '',
+            'csv_location': '',
+            'alert_token': '',
+            'alert_channel': '',
+            'players_url': '',
+            'regex': r'.+ \* (.+?) .+? snitch at (.+) \[(.+)]'
+        }
         try:
             with open(self.settings_file_path, 'r') as settings_file:
-                args = json.load(settings_file)
-                if args:
-                    self.log_location = args['log_location']
-                    self.csv_location = args['csv_location']
-                    self.alert_token = args['alert_token']
-                    self.alert_channel = args['alert_channel']
-                    self.players_url = args['players_url']
-                    self.regex = args['regex']
-                print self.__dict__
+                self.settings = json.load(settings_file)
         except Exception as e:
-            print "no settings file found, skipping"
+            print "settings file problem"
             print e
         Resource.__init__(self)
     def render_GET(self, request):
-        output = {}
-        output['log_path'] = self.log_location
-        output['csv_path'] = self.csv_location 
-        output['pushbullet_token'] = self.alert_token
-        output['pushbullet_channel'] = self.alert_channel
-        output['players_url'] = self.players_url
-        output['regex'] = self.regex
         request.setHeader('Content-type', 'application/json')
-        return json.dumps(output)
+        return json.dumps(self.settings)
     def render_POST(self, request):
         print request.args
         reactor.callLater(1, self.start, request)
         return 'starting!'
     def start(self, request):
         args = request.args
-        self.log_location = args['log_path'][0]
-        self.csv_location = args['csv_path'][0]
-        self.alert_token = args['pushbullet_token'][0]
-        self.alert_channel = args['pushbullet_channel'][0]
-        self.players_url = args['players_url'][0]
-        self.regex = args['regex'][0]
-        self.snitch_regex = re.compile(self.regex);
+        for key in self.settings.keys():
+            self.settings[key] = args[key][0]
 
-        
-        
+        self.snitch_regex = re.compile(self.settings['regex']); 
         self.csv_writer = None
         self.players = {}
 
-        if (self.csv_location):
-            self.csv_file = open(self.csv_location, 'ab')
+        if (self.settings['csv_location']):
+            self.csv_file = open(self.settings['csv_location'], 'ab')
             self.csv_writer = csv.writer(self.csv_file)
             
         self.fetch_players()
         print "Starting Up...";
 
         self.last_player_refresh = time.time()
-        self.file_ = open(self.log_location)
+        self.file_ = open(self.settings['log_location'])
         
         self.settings_file = open(self.settings_file_path, 'w')
         
-        output_dict = {
-            'log_location': self.log_location,
-            'csv_location': self.csv_location,
-            'alert_token': self.alert_token,
-            'alert_channel': self.alert_channel,
-            'players_url': self.players_url,
-            'regex': self.regex,
-        }
-        
-        json.dump(output_dict, self.settings_file)
+        json.dump(self.settings, self.settings_file)
         self.settings_file.close()
         
         print "Opened log file, scanning..."
@@ -144,14 +115,14 @@ class Thing(Resource):
         if ciplayer in self.players and self.players[ciplayer]['status'] == 'alert' and 'alerted' not in self.players[ciplayer]:
             print "ALERT ALERT ALERT ALERT"
             notice = {
-                'channel_tag': 'civcarbon',
+                'channel_tag': self.settings['alert_channel'],
                 'type': 'link',
                 'body': ciplayer + ' hit snitch ' + location + ' [' + coordinates + ']\nBounty: ' + self.players[ciplayer]['bounty'] + '\nNote: ' + self.players[ciplayer]['note'],
                 'url': 'https://www.reddit.com/r/Civcraft/search?q='+player+'&sort=new&restrict_sr=on'
             }
             body = json.dumps(notice)
-            headers = {'Content-type': 'application/json', 'Authorization': 'Bearer ' + self.alert_token}
-            r = requests.post(alert_url, auth=(self.alert_token, ''), data=body, headers=headers, verify=False)
+            headers = {'Content-type': 'application/json', 'Authorization': 'Bearer ' + self.settings['alert_token']}
+            r = requests.post(alert_url, auth=(self.settings['alert_token'], ''), data=body, headers=headers, verify=False)
             print r
             print str(r.text)
             self.players[ciplayer]['alerted'] = True
@@ -159,7 +130,7 @@ class Thing(Resource):
     def fetch_players(self):
         print "Fetching players..."
         self.players.clear()
-        r = requests.get(self.players_url, verify=False)
+        r = requests.get(self.settings['players_url'], verify=False)
         # r should now be a tsv file
         csv_read_file = StringIO.StringIO(r.text)
         csv_reader = csv.reader(csv_read_file, delimiter='\t')
