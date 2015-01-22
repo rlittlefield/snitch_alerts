@@ -119,12 +119,13 @@ class Thing(Resource):
         is_alert_player = ciplayer in self.players and self.players[ciplayer]['status'] == 'alert'
         aux_matches = self.aux_regex.search(location)
         
-        if self.aux_matches or (is_alert_player and 'alerted' not in self.players[ciplayer]):
+        if aux_matches or (is_alert_player and 'alerted' not in self.players[ciplayer]):
             print "ALERT ALERT ALERT ALERT"
+            player_dict = self.players.get(ciplayer, {})
             notice = {
                 'channel_tag': self.settings['alert_channel'],
                 'type': 'link',
-                'body': ciplayer + ' hit snitch ' + location + ' [' + coordinates + ']\nBounty: ' + self.players[ciplayer]['bounty'] + '\nNote: ' + self.players[ciplayer]['note'],
+                'body': ciplayer + ' hit snitch ' + location + ' [' + coordinates + ']\nBounty: ' + player_dict.get('bounty', '') + '\nNote: ' + player_dict.get('note', 'Not in DB'),
                 'url': 'https://www.reddit.com/r/Civcraft/search?q='+player+'&sort=new&restrict_sr=on'
             }
             body = json.dumps(notice)
@@ -132,6 +133,8 @@ class Thing(Resource):
             r = requests.post(alert_url, auth=(self.settings['alert_token'], ''), data=body, headers=headers, verify=False)
             print r
             print str(r.text)
+            if ciplayer not in self.players:
+                self.players[ciplayer] = player_dict
             self.players[ciplayer]['alerted'] = True
             
     def fetch_players(self):
