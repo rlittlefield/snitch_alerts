@@ -43,11 +43,14 @@ class Thing(Resource):
             'alert_token': '',
             'alert_channel': '',
             'players_url': '',
-            'regex': r'.+ \* (.+?) .+? snitch at (.+) \[(.+)]'
+            'regex': r'.+ \* (.+?) .+? snitch at (.+) \[(.+)]',
+            'aux_regex' : r'alert'
         }
         try:
             with open(self.settings_file_path, 'r') as settings_file:
-                self.settings = json.load(settings_file)
+                settings = json.load(settings_file)
+                for key in settings:
+                    self.settings[key] = settings[key]
         except Exception as e:
             print "settings file problem"
             print e
@@ -64,7 +67,8 @@ class Thing(Resource):
         for key in self.settings.keys():
             self.settings[key] = args[key][0]
 
-        self.snitch_regex = re.compile(self.settings['regex']); 
+        self.snitch_regex = re.compile(self.settings['regex'])
+        self.aux_regex = re.compile(self.settings['aux_regex'])
         self.csv_writer = None
         self.players = {}
 
@@ -112,7 +116,10 @@ class Thing(Resource):
             self.csv_writer.writerow((datetime.datetime.utcnow().isoformat(), player, location, coordinates))
             self.csv_file.flush()
         ciplayer = player.lower() # in case we didn't save it correctly in the doc
-        if ciplayer in self.players and self.players[ciplayer]['status'] == 'alert' and 'alerted' not in self.players[ciplayer]:
+        is_alert_player = ciplayer in self.players and self.players[ciplayer]['status'] == 'alert'
+        aux_matches = self.aux_regex.search(location)
+        
+        if self.aux_matches or (is_alert_player and 'alerted' not in self.players[ciplayer]):
             print "ALERT ALERT ALERT ALERT"
             notice = {
                 'channel_tag': self.settings['alert_channel'],
