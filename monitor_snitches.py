@@ -19,16 +19,27 @@ from twisted.web.static import File
 
 alert_url = 'https://api.pushbullet.com/v2/pushes';
 
-
 if getattr(sys, 'frozen', False):
     print "Loading as frozen executable"
-    abspath = os.path.abspath(sys.executable)
+    root_path = os.path.abspath(sys.executable)
+    abspath = root_path
+    print sys._MEIPASS
+    if sys._MEIPASS:
+        abspath = sys._MEIPASS
+        os.chdir(abspath)
+        root_dir = os.path.dirname(root_path)
+    else:
+        dname = os.path.dirname(abspath)
+        os.chdir(dname)
+        root_dir = dname
 elif __file__:
     print "Loading as python script"
     abspath = os.path.abspath(__file__)
+    dname = os.path.dirname(abspath)
+    root_dir = dname
+    os.chdir(dname)
 
-dname = os.path.dirname(abspath)
-os.chdir(dname)
+
 
 class Thing(Resource):
     isLeaf = True
@@ -47,7 +58,7 @@ class Thing(Resource):
             'aux_regex' : r'alert'
         }
         try:
-            with open(self.settings_file_path, 'r') as settings_file:
+            with open(os.path.join(root_dir, self.settings_file_path), 'r') as settings_file:
                 settings = json.load(settings_file)
                 for key in settings:
                     self.settings[key] = settings[key]
@@ -82,7 +93,7 @@ class Thing(Resource):
         self.last_player_refresh = time.time()
         self.file_ = open(self.settings['log_location'])
         
-        self.settings_file = open(self.settings_file_path, 'w')
+        self.settings_file = open(os.path.join(root_dir, self.settings_file_path), 'w')
         
         json.dump(self.settings, self.settings_file)
         self.settings_file.close()
@@ -136,7 +147,6 @@ class Thing(Resource):
             if ciplayer not in self.players:
                 self.players[ciplayer] = player_dict
             self.players[ciplayer]['alerted'] = True
-            
     def fetch_players(self):
         print "Fetching players..."
         self.players.clear()
