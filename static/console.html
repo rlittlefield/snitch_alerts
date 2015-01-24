@@ -1,0 +1,88 @@
+<!DOCTYPE HTML>
+<!--
+	Strata by HTML5 UP
+	html5up.net | @n33co
+	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+-->
+<html>
+	<head>
+		<title>Carbon Snitch Alert System</title>
+		<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+		<meta name="description" content="" />
+		<meta name="keywords" content="" />
+		<!--[if lte IE 8]><script src="css/ie/html5shiv.js"></script><![endif]-->
+		<script src="js/jquery.min.js"></script>
+		<script src="js/skel.min.js"></script>
+		<script src="js/init.js"></script>
+        <script src="js/home.js"></script>
+		<noscript>
+			<link rel="stylesheet" href="css/skel.css" />
+			<link rel="stylesheet" href="css/style.css" />
+			<link rel="stylesheet" href="css/style-xlarge.css" />
+		</noscript>
+		<!--[if lte IE 8]><link rel="stylesheet" href="css/ie/v8.css" /><![endif]-->
+	</head>
+	<body id="top">
+
+		<!-- Header -->
+			<header id="header">
+				<a href="#" class="image avatar"><img src="images/avatar.jpg" alt="" /></a>
+				<h1>Carbon Snitch Alert System</h1>
+			</header>
+            <style type="text/css">
+                #output_panel {
+                    height: 500px;
+                    overflow: scroll;
+                }
+            
+            </style>
+		<!-- Main -->
+			<div id="main">
+                <div id="output_panel"></div>
+				<div id="input_panel">
+                    Input: <input type="text" id="input_data" value="" style="width: 450px;" />
+                </div>
+            <script>
+            $(function() {
+                window.output_panel = $('#output_panel');
+                window.output_panel_el = window.output_panel.get(0);
+                var socket = new WebSocket("ws://127.0.0.1:8081");
+                
+                socket.onmessage = function(data) {
+                    console.log(data);
+                    message = JSON.parse(data.data);
+                    if (message.data) {
+                        var tmp_text = $('<div></div>');
+                        tmp_text.text(message.data);
+                        output_panel.append(tmp_text);
+                        window.output_panel_el.scrollTop = window.output_panel_el.scrollHeight;
+                    }
+                };
+                
+                window.input_data = $("#input_data");
+                window.input_data.keydown(function(event) {
+                    if (event.which == 13) {
+                        event.preventDefault();
+                        socket.send(JSON.stringify({'type': 'chat', 'data': window.input_data.val()}));
+                        window.input_data.val('');
+                    }
+                    
+                });
+                
+            });
+            </script>
+			</div>
+			
+		<!-- Footer -->
+			<footer id="footer">
+				<ul class="icons">
+					<li><a href="https://github.com/rlittlefield/snitch_alerts" class="icon fa-github"><span class="label">Github</span></a></li>
+					<li><a href="mailto:ryan@ryanlittlefield.com" class="icon fa-envelope-o"><span class="label">Email</span></a></li>
+				</ul>
+				<ul class="copyright">
+					<li>&copy; J. Ryan Littlefield</li><li>Design: <a href="http://html5up.net">HTML5 UP</a></li>
+				</ul>
+			</footer>
+
+	</body>
+</html>

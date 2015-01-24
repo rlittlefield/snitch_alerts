@@ -13,14 +13,27 @@ import webbrowser
 import subprocess
 from collections import deque
 
+import copy
+
 from twisted.web.server import Site
 from twisted.web.resource import Resource
 from twisted.internet import reactor, defer
 from twisted.internet import task
 from twisted.web.static import File
 from twisted.internet import protocol
+from twisted.web.util import Redirect;
+from twisted.web import server
+
+from autobahn.twisted.websocket import WebSocketServerProtocol, WebSocketServerFactory
 
 alert_url = 'https://api.pushbullet.com/v2/pushes';
+
+
+global_buffer = deque()
+global_sockets = set()
+
+input_buffer = deque()
+
 
 if getattr(sys, 'frozen', False):
     print "Loading as frozen executable"
@@ -79,10 +92,12 @@ class Thing(Resource):
         return json.dumps(self.settings)
     def render_POST(self, request):
         print request.args
-        reactor.callLater(1, self.start, request)
-        return 'starting!'
-    def start(self, request):
-        args = request.args
+        args = copy.deepcopy(request.args)
+        reactor.callLater(1, self.start, args)
+        request.redirect("/console.html")
+        request.finish()
+        return server.NOT_DONE_YET
+    def start(self, args):
         for key in self.settings.keys():
             self.settings[key] = args[key][0]
             
@@ -131,6 +146,10 @@ class Thing(Resource):
                 self.loop.start(1.0)
     def handle_line(self, line):
         matches = self.snitch_regex.findall(line)
+        
+        for socket in global_sockets:
+            socket.sendMessage(json.dumps({'type':'message', 'data':line}))
+        
         if len(matches) > 0:
             print "[snitch]\t" + line
             self.record_snitch(*matches[0])
@@ -141,12 +160,18 @@ class Thing(Resource):
         for line in self.client_protocol.lines:
             self.handle_line(line)
         self.client_protocol.lines.clear()
+        for i in input_buffer:
+            self.client_protocol.transport.write(i.encode('utf-8') + '\n')
+        input_buffer.clear()
         return
     def tick(self):
         if time.time() > self.last_player_refresh + 1200:
             self.fetch_players();
             self.last_player_refresh = time.time()
         self.curr_position = self.file_.tell()
+        
+        
+        
         line = self.file_.readline()
         if not line:
             self.file_.seek(self.curr_position)
@@ -211,6 +236,9 @@ class MinecraftClientExeProtocol(protocol.ProcessProtocol):
             self.buffer.append(line)
             final_line = ''.join(self.buffer)
             self.lines.append(final_line)
+            global_buffer.append(final_line)
+            if len(global_buffer) > 50:
+                global_buffer.popleft()
             self.buffer.clear()
     def tick(self):
         self.transport.write("sup bro\n")
@@ -224,9 +252,46 @@ class MinecraftClientExeProtocol(protocol.ProcessProtocol):
         reactor.callLater(10, self.startLoop);
         
 
+class MyServerProtocol(WebSocketServerProtocol):
+    def onConnect(self, request):
+        print("Client connecting: {0}".format(request.peer))
+
+    def onOpen(self):
+        print("WebSocket connection open.")
+        global_sockets.add(self)
+        print("Finished opening")
+    def onMessage(self, payload, isBinary):
+        if isBinary:
+            print("Binary message received: {0} bytes".format(len(payload)))
+        else:
+            print("Text message received: {0}".format(payload.decode('utf8')))
+            # dispatch message into the stdout of the MinecraftClientExeProtocol object
+            try:
+                data = json.loads(payload.decode('utf8'))
+            except Exception as e:
+                print("Error receiving input from socket")
+                return
+            if data and 'data' in data:
+                input_buffer.append(data['data'])
+        # echo back message verbatim
+        self.sendMessage(payload, isBinary)
+    def onClose(self, wasClean, code, reason):
+        print("WebSocket connection closed: {0}".format(reason))
+        global_sockets.remove(self)
+        
+    
+factory = WebSocketServerFactory("ws://localhost:8081", debug = True)
+factory.protocol = MyServerProtocol
+reactor.listenTCP(8081, factory)
+
+
+
 
 def openBrowserConfig():
     webbrowser.open('http://127.0.0.1:8080')
+    
+
+    
 reactor.callLater(1, openBrowserConfig);
 reactor.run()
 
