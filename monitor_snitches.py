@@ -10,12 +10,15 @@ import csv
 import datetime
 import StringIO
 import webbrowser
+import subprocess
+from collections import deque
 
 from twisted.web.server import Site
 from twisted.web.resource import Resource
 from twisted.internet import reactor, defer
 from twisted.internet import task
 from twisted.web.static import File
+from twisted.internet import protocol
 
 alert_url = 'https://api.pushbullet.com/v2/pushes';
 
@@ -39,8 +42,6 @@ elif __file__:
     root_dir = dname
     os.chdir(dname)
 
-
-
 class Thing(Resource):
     isLeaf = True
     started = False
@@ -48,6 +49,8 @@ class Thing(Resource):
     settings_file_path = 'settings.json'
     
     def __init__(self):
+        self.client_process = None
+        self.client_buffer = deque()
         self.settings = {
             'log_location': '',
             'csv_location': '',
@@ -55,7 +58,12 @@ class Thing(Resource):
             'alert_channel': '',
             'players_url': '',
             'regex': r'.+ \* (.+?) .+? snitch at (.+) \[(.+)]',
-            'aux_regex' : r'alert'
+            'aux_regex' : r'alert',
+            'client_location': '',
+            'client_username': '',
+            'client_password': '',
+            'client_server': '',
+            'client_groupchat': ''
         }
         try:
             with open(os.path.join(root_dir, self.settings_file_path), 'r') as settings_file:
@@ -77,6 +85,10 @@ class Thing(Resource):
         args = request.args
         for key in self.settings.keys():
             self.settings[key] = args[key][0]
+            
+        self.settings_file = open(os.path.join(root_dir, self.settings_file_path), 'w')
+        json.dump(self.settings, self.settings_file)
+        self.settings_file.close()
 
         self.snitch_regex = re.compile(self.settings['regex'])
         self.aux_regex = re.compile(self.settings['aux_regex'])
@@ -89,22 +101,47 @@ class Thing(Resource):
             
         self.fetch_players()
         print "Starting Up...";
-
         self.last_player_refresh = time.time()
-        self.file_ = open(self.settings['log_location'])
         
-        self.settings_file = open(os.path.join(root_dir, self.settings_file_path), 'w')
-        
-        json.dump(self.settings, self.settings_file)
-        self.settings_file.close()
-        
-        print "Opened log file, scanning..."
-        # Go to the end of file
-        self.file_.seek(0,2)
-        if not self.loop:
-            self.loop = task.LoopingCall(self.tick)
-            self.loop.start(1.0)
-        
+        if self.settings['client_location']:
+            print 'starting client...'
+            self.client_protocol = MinecraftClientExeProtocol(self.settings['client_groupchat'])
+            reactor.spawnProcess(
+                self.client_protocol,
+                self.settings['client_location'],
+                args = [
+                    self.settings['client_location'],
+                    self.settings['client_username'],
+                    self.settings['client_password'],
+                    self.settings['client_server'],
+                    'BasicIO'
+                ]
+            )
+            print "client is started"
+            if not self.loop:
+                self.loop = task.LoopingCall(self.client_tick)
+                self.loop.start(1.0)
+        else:
+            self.file_ = open(self.settings['log_location'])
+            print "Opened log file, scanning..."
+            # Go to the end of file
+            self.file_.seek(0,2)
+            if not self.loop:
+                self.loop = task.LoopingCall(self.tick)
+                self.loop.start(1.0)
+    def handle_line(self, line):
+        matches = self.snitch_regex.findall(line)
+        if len(matches) > 0:
+            print "[snitch]\t" + line
+            self.record_snitch(*matches[0])
+        else:
+            print "[received]\t" + line
+        return
+    def client_tick(self):
+        for line in self.client_protocol.lines:
+            self.handle_line(line)
+        self.client_protocol.lines.clear()
+        return
     def tick(self):
         if time.time() > self.last_player_refresh + 1200:
             self.fetch_players();
@@ -115,13 +152,8 @@ class Thing(Resource):
             self.file_.seek(self.curr_position)
         else:
             line = line.replace("\r", '').replace("\n", '').strip()
-            matches = self.snitch_regex.findall(line)
-            if len(matches) > 0:
-                print "success " + line
-                self.record_snitch(*matches[0])
-            else:
-                print "failed " + line
             self.tick() # when lines are available, process them as fast as possible
+        return
     def record_snitch(self, player, location, coordinates):
         if self.csv_writer:
             self.csv_writer.writerow((datetime.datetime.utcnow().isoformat(), player, location, coordinates))
@@ -158,17 +190,38 @@ class Thing(Resource):
             player = {'status': row[1], 'note': row[2], 'bounty': row[3]}
             self.players[row[0].lower()] = player
         print "Loaded " + str(len(self.players)) + ' players'
-            
         
-
 app = Thing()
 
 root = File('static')
 root.putChild('app', app)
 factory = Site(root)
-
-
 reactor.listenTCP(8080, factory)
+
+class MinecraftClientExeProtocol(protocol.ProcessProtocol):
+    def __init__(self, chat_name):
+        self.buffer = deque()
+        self.lines = deque()
+        self.loop = None
+        self.chat_name = chat_name
+    def outReceived(self, data):
+        data = re.sub('\xa7.', '', data)
+        lines = data.split('\n')
+        for line in lines:
+            self.buffer.append(line)
+            final_line = ''.join(self.buffer)
+            self.lines.append(final_line)
+            self.buffer.clear()
+    def tick(self):
+        self.transport.write("sup bro\n")
+    def groupchat(self):
+        self.transport.write("/groupchat " + self.chat_name + "\n")
+        reactor.callLater(5, self.tick);
+    def connectionMade(self):
+        reactor.callLater(5, self.groupchat);
+        self.loop = task.LoopingCall(self.tick)
+        self.loop.start(50.0)
+
 
 def openBrowserConfig():
     webbrowser.open('http://127.0.0.1:8080')

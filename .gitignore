@@ -1,3 +1,5 @@
 settings.json
 /dist
 /build
+MinecraftClient.ini
+lang/en_GB.lang
