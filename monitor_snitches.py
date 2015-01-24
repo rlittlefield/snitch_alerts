@@ -216,11 +216,13 @@ class MinecraftClientExeProtocol(protocol.ProcessProtocol):
         self.transport.write("sup bro\n")
     def groupchat(self):
         self.transport.write("/groupchat " + self.chat_name + "\n")
-        reactor.callLater(5, self.tick);
-    def connectionMade(self):
-        reactor.callLater(5, self.groupchat);
+    def startLoop(self):
         self.loop = task.LoopingCall(self.tick)
         self.loop.start(50.0)
+    def connectionMade(self):
+        reactor.callLater(1, self.groupchat);
+        reactor.callLater(10, self.startLoop);
+        
 
 
 def openBrowserConfig():
