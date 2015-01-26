@@ -32,13 +32,20 @@
 
 		<!-- Main -->
 			<div id="main">
-		
+            <form action="/app" method="POST">
+
 				<!-- One -->
 					<section id="one">
 						<header class="major">
 							<h2>Get alerts sent to your phone or browser <br/>
                             when someone hits your snitches</h2>
 						</header>
+                        
+                        <div>
+                            <input type="submit" name="submit" value="Start Log-Based" />
+                            <input type="submit" name="client_submit" value="Start Client-Based" />
+                        </div>
+                        
 						<p>
                             The CSAS is written by Ryan Littlefield. It is designed to alert you and your friends when someone hits a snitch in <a href="https://www.reddit.com/r/civcraft">civcraft</a>. Push alerts are currently handled through <a href="https://www.pushbullet.com/">Pushbullet</a> public channels.
                         </p>
@@ -64,7 +71,6 @@
 				<!-- Three -->
 					<section id="three">
 						<h2>Config</h2>
-						<form action="/app" method="POST">
                         <p> We just need to fill out a few quick items before we can get started.</p>
                         <ol>
                             <li>
@@ -96,7 +102,6 @@
                                 <span>aux regex always alert if someone hits this</span>
                                 <input type="text" value="$aux_regex" name="aux_regex" id="aux_regex" />
                             </li>
-                            
                             <li>
                                 <span>MinecraftClient.exe path (optional, use in place of log path)</span>
                                 <input type="text" value="$client_location" name="client_location" id="client_location" />
@@ -118,9 +123,8 @@
                                 <input type="text" value="$client_groupchat" name="client_groupchat" id="client_groupchat" />
                             </li>
                         </ol>
-                        <input type="submit" value="Start!" />
-                    </form>
 					</section>
+                    </form>
 
 			</div>
 			

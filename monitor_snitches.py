@@ -118,7 +118,7 @@ class Thing(Resource):
         print "Starting Up...";
         self.last_player_refresh = time.time()
         
-        if self.settings['client_location']:
+        if 'client_submit' in args:
             print 'starting client...'
             self.client_protocol = MinecraftClientExeProtocol(self.settings['client_groupchat'])
             reactor.spawnProcess(
