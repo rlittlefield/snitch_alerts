@@ -146,7 +146,6 @@ class Thing(Resource):
                 self.loop.start(1.0)
     def handle_line(self, line):
         matches = self.snitch_regex.findall(line)
-        
         for socket in global_sockets:
             socket.sendMessage(json.dumps({'type':'message', 'data':line}))
         
@@ -169,14 +168,12 @@ class Thing(Resource):
             self.fetch_players();
             self.last_player_refresh = time.time()
         self.curr_position = self.file_.tell()
-        
-        
-        
         line = self.file_.readline()
         if not line:
             self.file_.seek(self.curr_position)
         else:
             line = line.replace("\r", '').replace("\n", '').strip()
+            self.handle_line(line)
             self.tick() # when lines are available, process them as fast as possible
         return
     def record_snitch(self, player, location, coordinates):
