@@ -146,6 +146,7 @@ class Thing(Resource):
                 self.loop.start(1.0)
     def handle_line(self, line):
         matches = self.snitch_regex.findall(line)
+        line = line.decode('utf8', 'ignore')
         for socket in global_sockets:
             socket.sendMessage(json.dumps({'type':'message', 'data':line}))
         
