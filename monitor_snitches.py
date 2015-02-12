@@ -88,6 +88,7 @@ class Thing(Resource):
             print e
         Resource.__init__(self)
     def render_GET(self, request):
+        print request
         request.setHeader('Content-type', 'application/json')
         return json.dumps(self.settings)
     def render_POST(self, request):
@@ -213,10 +214,36 @@ class Thing(Resource):
             player = {'status': row[1], 'note': row[2], 'bounty': row[3]}
             self.players[row[0].lower()] = player
         print "Loaded " + str(len(self.players)) + ' players'
-        
-app = Thing()
 
+
+class App(Resource):
+    def __init__(self):
+        Resource.__init__(self)
+    def getChild(self, name, request):
+        print("Name is :"+name)
+        print(request)
+        dispatch = {
+            'config': config,
+            'refresh': refresh
+        }
+        return dispatch[name]
+
+class Refresh(Resource):
+    def render_POST(self, request):
+        config.fetch_players()
+        for socket in global_sockets:
+            socket.sendMessage(json.dumps({'type':'message', 'data':'[updated player list]'}))
+        return '{"success":true}'
+
+app = App()
+config = Thing()
+refresh = Refresh()
 root = File('static')
+
+
+
+
+
 root.putChild('app', app)
 factory = Site(root)
 reactor.listenTCP(8080, factory)

@@ -37,11 +37,17 @@
             
             </style>
 		<!-- Main -->
-			<div id="main">
+            <div id="main">
+
+                <div>
+                    <button class="button" id="refresh_players">Refresh Bad-Guy List</button>
+                </div>
                 <div id="output_panel"></div>
 				<div id="input_panel">
                     Input: <input type="text" id="input_data" value="" style="width: 450px;" />
                 </div>
+
+
             <script>
             $(function() {
                 window.output_panel = $('#output_panel');
@@ -67,6 +73,17 @@
                         window.input_data.val('');
                     }
                     
+                });
+
+                window.refresh_button = $("#refresh_players");
+                window.refresh_button.click(function() {
+                    $.ajax({
+                        'url': '/app/refresh',
+                        'success': function(data) {
+                            console.log(data);
+                        },
+                        'method': 'POST'
+                    });
                 });
                 
             });
